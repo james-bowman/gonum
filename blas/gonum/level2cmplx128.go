@@ -178,3 +178,58 @@ func (Implementation) Zher(uplo blas.Uplo, n int, alpha float64, x []complex128,
 		ix += incX
 	}
 }
+
+// Zher2 performs the Hermitian rank-two operation
+//  A += alpha*x*y^H + conj(alpha)*y*x^H
+// where alpha is a scalar, x and y are n element vectors and A is an n×n
+// Hermitian matrix. On entry, the imaginary parts of the diagonal elements are
+// ignored and assumed to be zero. On return they will be set to zero.
+func (Implementation) Zher2(uplo blas.Uplo, n int, alpha complex128, x []complex128, incX int, y []complex128, incY int, a []complex128, lda int) {
+	if uplo != blas.Upper && uplo != blas.Lower {
+		panic(badUplo)
+	}
+	checkZMatrix('A', n, n, a, lda)
+	checkZVector('x', n, x, incX)
+	checkZVector('y', n, y, incY)
+
+	if n == 0 || alpha == 0 {
+		return
+	}
+
+	// var kx, ky int
+	// var jx, jy int
+	// if incX != 1 || incY != 1 {
+	// 	if incX < 0 {
+	// 		kx = (1 - n) * incX
+	// 	}
+	// 	if incY < 0 {
+	// 		ky = (1 - n) * incY
+	// 	}
+	// 	jx = kx
+	// 	jy = ky
+	// }
+	if uplo == blas.Upper {
+		if incX == 1 && incY == 1 {
+			for i := 0; i < n; i++ {
+				if x[i] != 0 || y[i] != 0 {
+					tmp1 := alpha * x[i]
+					tmp2 := cmplx.Conj(alpha) * y[i]
+					aii := real(a[i*lda+i]) + real(tmp1*cmplx.Conj(y[i])) + real(tmp2*cmplx.Conj(x[i]))
+					a[i*lda+i] = complex(aii, 0)
+					for j := i + 1; j < n; j++ {
+						a[i*lda+j] += tmp1*cmplx.Conj(y[j]) + tmp2*cmplx.Conj(x[j])
+					}
+				} else {
+					aii := real(a[i*lda+i])
+					a[i*lda+i] = complex(aii, 0)
+				}
+			}
+			return
+		}
+		return
+	}
+	if incX == 1 && incY == 1 {
+		return
+	}
+	return
+}
